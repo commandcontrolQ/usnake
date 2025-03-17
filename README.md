@@ -12,7 +12,7 @@ Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this projec
 
 ## Compiling
 > [!IMPORTANT]
-> MacOS: From Mountain Lion onwards, Apple no longer provides an X server by default. Please make sure you install [XQuartz](https://www.xquartz.org/) before you try to compile or run usnake.
+> MacOS: From Mountain Lion onwards, Apple no longer provides an X server by default. Please make sure you install [XQuartz](https://www.xquartz.org/) (and by extension the Xcode Command Line Tools) before you try to compile or run usnake.
 >
 > Haiku: You will need to install the Xlib compatibility layer [xlibe](https://depot.haiku-os.org/#!/?bcguid=bc1-FWRS&repos=haikuports&arch=x86_64&incldev=true&onlynatv=false&viewcrttyp=ALL&srchexpr=xlibe).
 
