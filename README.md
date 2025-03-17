@@ -1,6 +1,6 @@
 # usnake
 The popular game of Snake, but instead written for as many platforms as possible. <br>
-Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr)
+Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this project also inherits the same [license](/LICENSE).
 
 ## Minimum requirements
 - Microsoft Windows XP (via `gcc` only)
