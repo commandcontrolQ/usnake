@@ -1,14 +1,24 @@
-# usnake
+# uSnake
 The popular game of Snake, but instead written for as many platforms as possible. <br>
 Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this project also inherits the same [license](/LICENSE).
 
-## Minimum requirements
-- Microsoft Windows 7 (`clang`/`gcc` via MinGW or Cygwin)
-  - Windows XP might be possible: feel free to [open an issue](https://github.com/commandcontrolQ/usnake/issues) if you are able to.
-- Mac OS X Tiger (using the parameter `-mmacosx-version-min=10.4`)
-  - Without the parameter, you will need at least Snow Leopard
+## Requirements for running uSnake
+- Windows XP (see **Compiling for Windows XP** below)
+  - otherwise Windows 7
+- macOS X Snow Leopard
+  - macOS X Tiger and Leopard might be possible (using `-mmacosx-version-min=10.4`) however is untested.
 - Linux kernel verison 2.6.0 or greater
 - Haiku (beta 5)
+
+## Requirements for compiling uSnake
+- Windows 10 *recommended* (in order to use MSYS2 MINGW64/MINGW32)
+  - Compiling with Windows 8.1 and below *could be possible*, however that is up to you.
+- Any version of macOS which can install GCC
+  - [Homebrew](brew.sh) requires at least macOS Ventura, [MacPorts](macports.org) requires at least MacOS X Leopard
+- Any **supported** version of any Linux distribution
+  - It is likely possible to compile uSnake using Debian *Etch* however good luck getting `apt` working :P
+
+---
 
 ## Compiling
 > [!IMPORTANT]
@@ -21,17 +31,30 @@ Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this projec
 >
 > **Haiku**: You will need to install the Xlib compatibility layer [xlibe](https://depot.haiku-os.org/#!/?bcguid=bc1-FWRS&repos=haikuports&arch=x86_64&incldev=true&onlynatv=false&viewcrttyp=ALL&srchexpr=xlibe).
 
-It is pretty easy to compile usnake. In fact, it can be done with one command: <br>
-`/usr/bin/clang -g usnake.c -o usnake -lX11` or `/usr/bin/gcc -g usnake.c -o usnake -lX11` <br>
-<sup>In macOS, `/usr/bin/gcc` and `/usr/bin/clang` are both the same hard link. For proper GCC compilation, scroll down a bit further.</sup>
+These compilation instructions assume there is no cross-compilation (i.e. you compile a Windows executable on Windows), and that you are using the GNU Compiler Collection (GCC) <br>
+(although in most cases you can compile with Clang too, in which case you can just change gcc to clang).
 
-Just make sure to omit `-lX11` when compiling on Windows.
+### Compiling for Linux (and Haiku)
+It is pretty easy to compile usnake. In fact, it can be done immediately (as long as all prerequisites are met, read the note above for more info): <br>
+`gcc -g usnake.c -o usnake -lX11` <br>
 
-### Compiling using GCC in macOS
+### Compiling for Windows 
+First, make sure you have [MSYS2](https://www.msys2.org/) installed and updated. <br>
+Then, make sure that the correct MinGW toolchain is installed:
 
-For macOS, since `/usr/bin/gcc` and `/usr/bin/clang` are the same thing, compiling with GCC will require you to install GCC using a package manager of your choice: <br>
-Replace the hashtags with the major version number of GCC you want to install (i.e. `brew install gcc@10` for GCC 10):
-- `brew install gcc@##` or `fink install gcc##` or `sudo port install gcc##` <br>
+`$ pacman -S mingw-w64-x86_64-toolchain` to compile for 64-bit Windows <br>
+`$ pacman -S mingw-w64-i386-toolchain` to compile for 32-bit Windows
 
-Once done, locate where `gcc` is installed (Homebrew users should find GCC in `/usr/local/Cellar/gcc/<version>/bin`) and then you can run the following command: <br>
-`/usr/local/Cellar/gcc/14.2.0_1/bin/gcc-14* -g usnake.c -o usnake-gcc -lX11 -I /opt/X11/include -L /opt/X11/lib/`
+#### Compiling for Windows 7 and above
+Replace '##' with either 32 or 64 depending on the target architecture: <br>
+`C:\msys64\mingw##\bin\gcc -g usnake.c -o usnake-gcc-win## -lgdi32 -luser32`
+
+#### Compiling for Windows XP
+Replace '##' with either 32 or 64 depending on the target architecture: <br>
+`C:\msys64\mingw##\bin\gcc -g usnake.c -o usnake-gcc-win## -lgdi32 -luser32 -D_WIN32_WINNT=0x0501`
+
+### Compiling for macOS
+For some reason, gcc on macOS fails using the standard Linux command unless you manually specify the X11 include and lib directories. <br>
+Replace `path/to` with the folder in which `X11/include` and `X11/lib` can be found (usually `usr` or `opt`): <br>
+`/usr/bin/gcc -g usnake.c -o usnake-gcc -lX11 -I /path/to/X11/include -L /path/to/X11/lib/`
+
