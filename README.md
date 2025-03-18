@@ -3,8 +3,8 @@ The popular game of Snake, but instead written for as many platforms as possible
 Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this project also inherits the same [license](/LICENSE).
 
 ## Minimum requirements
-- Microsoft Windows XP (via `gcc` only)
-  - `clang` requires at least Windows 7.
+- Microsoft Windows 7 (`clang`/`gcc` via MinGW or Cygwin)
+  - Windows XP might be possible: feel free to [open an issue](https://github.com/commandcontrolQ/usnake/issues) if you are able to.
 - Mac OS X Tiger (using the parameter `-mmacosx-version-min=10.4`)
   - Without the parameter, you will need at least Snow Leopard
 - Linux kernel verison 2.6.0 or greater
