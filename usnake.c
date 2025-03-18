@@ -1,31 +1,19 @@
-// Copyright (c) 2020 MattKC
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+/* NOTE: License has been moved to the bottom of the file
+
+USnake - Snake but for as many platforms as possible
+Based (mostly) off of MattKC's Snake source code (https://mattkc.com/etc/snakeqr/snake.c),
+this code aims to port it to multiple platforms using as few non-standard libraries as possible.
+The only non-standard library used is X11 for displaying the game.
+
+For information about supported platforms, see the GitHub repository (https://github.com/commandcontrolQ/usnake)
+*/
 
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <stdlib.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <time.h>
-#include <stdbool.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -33,11 +21,14 @@
 #include <string.h>
 #endif
 
+#include <stdio.h>
+#include <stdbool.h>
+
 #ifdef _WIN32
-#define GAME_NAME           "Snake"
-#else
-#define GAME_NAME           "X11 Snake"
+#define WINDOW_STYLE        WS_VISIBLE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU // This is for Windows only
 #endif
+
+#define GAME_NAME           "uSnake (X11)"                                       // This is for non-Windows only
 #define WINDOW_WIDTH        800
 #define WINDOW_HEIGHT       600
 #define TILE_SIZE           40
@@ -57,7 +48,8 @@ struct Position {
     int y;
 };
 
-const char* window_name = "Snake";
+const char* window_name = "uSnake";
+RECT window_rect = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
 struct Position* snake_pos;
 struct Position food_pos;
 int snake_len = 1;
@@ -66,6 +58,7 @@ int* dir_queue;
 int dir_queue_sz = 0;
 int dir_queue_read = 0;
 bool forgiveness = false;
+bool game_over_displayed = false;
 
 bool PosEqual(struct Position* p1, struct Position* p2)
 {
@@ -117,11 +110,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             food_pos_px.x + FOOD_SIZE, 
             food_pos_px.y + FOOD_SIZE);
 
-        if (player_dir == -1) {
+        
+        if (player_dir == 0) { // Snake and food are white
+            SelectObject(device, CreateSolidBrush(0xFFFFFF));
+        } else if (player_dir == -1) { // Game over, snake and food are red
             SelectObject(device, CreateSolidBrush(0x0000FF));
-        } else if (player_dir == -2) {
+        } else if (player_dir == -2) { // Game won, snake and food are green
             SelectObject(device, CreateSolidBrush(0x00FF00));
         }
+        
 
         struct Position top_left;
         struct Position bottom_right;
@@ -203,6 +200,40 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_TIMER:
     {
+        if (player_dir < 0 && !game_over_displayed) {
+            // Game over or won
+            game_over_displayed = true;
+            
+            char message[256];
+            if (player_dir == -1) {
+                sprintf(message, "Game Over! Your final score is: %d\nPlay again?", snake_len-1);
+            } else if (player_dir == -2) {
+                sprintf(message, "You won! Your final score is: %d\nPlay again?", snake_len-1);
+            }
+
+            int result = MessageBoxA(hwnd, message, "Game Over", MB_YESNO|MB_ICONQUESTION);
+
+            switch (result) {
+                case IDYES:
+                    snake_len = 1;
+                    player_dir = 0;
+                    dir_queue_read = 0;
+                    dir_queue_sz = 0;
+                    forgiveness = FALSE;
+                    game_over_displayed = FALSE;
+
+                    snake_pos[0].x = START_X;
+                    snake_pos[0].y = START_Y;
+
+                    SetFood();
+                    InvalidateRect(hwnd, 0, 1);
+                    break;
+                case IDNO:
+                    PostQuitMessage(0);
+                    break;
+            }
+            break;
+        }
         while (dir_queue_read < dir_queue_sz) {
             int proposed_dir = dir_queue[dir_queue_read%MAX_DIR_QUEUE];
             dir_queue_read++;
@@ -297,78 +328,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
 
-int main()
-{
-    HMODULE instance = GetModuleHandleA(NULL);
-
-    AdjustWindowRect(&window_rect, WINDOW_STYLE, FALSE);
-
-    WNDCLASSEXA window_class;
-    window_class.cbSize = 48;
-    window_class.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW ;
-    window_class.lpfnWndProc = WindowProc;
-    window_class.cbClsExtra = 0;
-    window_class.cbWndExtra = 0;
-    window_class.hInstance = instance;
-    window_class.hIcon = LoadIconA(0, IDI_APPLICATION);
-    window_class.hCursor = LoadCursorA(0, IDI_APPLICATION);
-    window_class.hbrBackground = CreateSolidBrush(0);
-    window_class.lpszMenuName = 0;
-    window_class.lpszClassName = window_name;
-    window_class.hIconSm = 0;
-
-    RegisterClassExA(&window_class);
-
-    // Start game
-    HANDLE heap = GetProcessHeap();
-
-    snake_pos = HeapAlloc(heap, 0, sizeof(struct Position)*MAX_TILE_COUNT);
-    snake_pos[0].x = START_X;
-    snake_pos[0].y = START_Y;
-
-    dir_queue = HeapAlloc(heap, 0, sizeof(struct Position)*MAX_DIR_QUEUE);
-
-    HWND window = CreateWindowExA(
-        0,
-        window_name,
-        window_name,
-        WINDOW_STYLE,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        window_rect.right - window_rect.left,
-        window_rect.bottom - window_rect.top,
-        0,
-        0,
-        instance,
-        NULL);
-
-    // Don't seem to be necessary? Saves space to remove
-    //ShowWindow(window, SW_SHOW);
-    //UpdateWindow(window);
-
-    // Set game timer
-    SetFood();
-    SetTimer(window, 0, 150, 0);
-
-    MSG msg;
-
-    while (GetMessage(&msg, 0, 0, 0)) {
-        if (msg.message == WM_QUIT) {
-            break;
-        } else {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
-
-    HeapFree(heap, 0, dir_queue);
-    HeapFree(heap, 0, snake_pos);
-
-    //ExitProcess(0);
-
-    return 0;
-}
-
 #else
 
 Display *display;
@@ -402,7 +361,7 @@ void draw_game_over() {
         printf("Game Over! Your final score is: %d\n", snake_len - 1);
 
         char message[256];
-        snprintf(message, sizeof(message), "Game Over! Your final score is: %d\n"
+        sprintf(message, sizeof(message), "Game Over! Your final score is: %d\n"
                                            "Press R to restart or Q to quit.", snake_len - 1);
 
         // Create a simple message box window
@@ -614,7 +573,90 @@ void draw_game() {
     }
 }
 
-int main() {
+#endif
+
+int main()
+{
+    #ifdef _WIN32
+    //////////////////// Start of Windows code
+    srand(GetTickCount()); 
+
+    HMODULE instance = GetModuleHandleA(NULL);
+
+    AdjustWindowRect(&window_rect, WINDOW_STYLE, FALSE);
+
+    WNDCLASSA window_class;
+    window_class.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+    window_class.lpfnWndProc = WindowProc;
+    window_class.cbClsExtra = 0;
+    window_class.cbWndExtra = 0;
+    window_class.hInstance = instance;
+    window_class.hIcon = LoadIconA(0, IDI_APPLICATION);
+    window_class.hCursor = LoadCursorA(0, IDC_ARROW);
+    window_class.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    window_class.lpszMenuName = 0;
+    window_class.lpszClassName = window_name;
+
+    if (!RegisterClassA(&window_class)) {
+        char error_message[256];
+        DWORD code = GetLastError();
+        sprintf(error_message, "Failed to register window class: GetLastError() returned %d", code);
+        MessageBoxA(0, error_message, "Error", MB_ICONERROR);
+        return 1;
+    }
+
+    // Start game
+    HANDLE heap = GetProcessHeap();
+
+    snake_pos = HeapAlloc(heap, 0, sizeof(struct Position)*MAX_TILE_COUNT);
+    snake_pos[0].x = START_X;
+    snake_pos[0].y = START_Y;
+
+    dir_queue = HeapAlloc(heap, 0, sizeof(struct Position)*MAX_DIR_QUEUE);
+
+    HWND window = CreateWindowExA(
+        0,
+        window_name,
+        window_name,
+        WINDOW_STYLE,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        window_rect.right - window_rect.left,
+        window_rect.bottom - window_rect.top,
+        0,
+        0,
+        instance,
+        NULL);
+
+    if (!window) {
+        MessageBoxA(0, "Failed to create window", "Error", MB_ICONERROR);
+        return 1;
+    }
+
+    // Might not be needed?
+    // ShowWindow(window, SW_SHOW);
+    // UpdateWindow(window);
+
+    // Set game timer
+    SetFood();
+    SetTimer(window, 0, 150, 0);
+
+    MSG msg;
+
+    while (GetMessage(&msg, 0, 0, 0)) {
+        if (msg.message == WM_QUIT) {
+            break;
+        } else {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+
+    HeapFree(heap, 0, dir_queue);
+    HeapFree(heap, 0, snake_pos);
+    //////////////////// End of Windows code
+    #else
+    //////////////////// Start of X11 code
     srand(time(NULL));
 
     display = XOpenDisplay(NULL);
@@ -674,8 +716,28 @@ int main() {
 
     free(dir_queue);
     free(snake_pos);
+    //////////////////// End of X11 code
+    #endif
 
     return 0;
 }
 
-#endif
+// Copyright (c) 2020 MattKC
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
