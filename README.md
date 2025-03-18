@@ -12,9 +12,14 @@ Based off of MattKC's [source code](https://mattkc.com/etc/snakeqr), this projec
 
 ## Compiling
 > [!IMPORTANT]
-> MacOS: From Mountain Lion onwards, Apple no longer provides an X server by default. Please make sure you install [XQuartz](https://www.xquartz.org/) (and by extension the Xcode Command Line Tools) before you try to compile or run usnake.
+> **Linux**: Make sure the development headers for X11 are installed: <br>
+> Debian-based distributions: `libx11-dev` <br>
+> Fedora-based distributions: `libX11-devel` <br>
+> Arch-based distributions: `libx11` <br>
+> 
+> **MacOS**: From Mountain Lion onwards, Apple no longer provides an X server by default. Please make sure you install [XQuartz](https://www.xquartz.org/) (and by extension the Xcode Command Line Tools) before you try to compile or run usnake.
 >
-> Haiku: You will need to install the Xlib compatibility layer [xlibe](https://depot.haiku-os.org/#!/?bcguid=bc1-FWRS&repos=haikuports&arch=x86_64&incldev=true&onlynatv=false&viewcrttyp=ALL&srchexpr=xlibe).
+> **Haiku**: You will need to install the Xlib compatibility layer [xlibe](https://depot.haiku-os.org/#!/?bcguid=bc1-FWRS&repos=haikuports&arch=x86_64&incldev=true&onlynatv=false&viewcrttyp=ALL&srchexpr=xlibe).
 
 It is pretty easy to compile usnake. In fact, it can be done with one command: <br>
 `/usr/bin/clang -g usnake.c -o usnake -lX11` or `/usr/bin/gcc -g usnake.c -o usnake -lX11` <br>
